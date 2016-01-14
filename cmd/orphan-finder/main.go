@@ -25,37 +25,37 @@ var (
 )
 
 func parseLogLine(sa core.StorageAuthority, logger *blog.AuditLogger, line string) (found bool, added bool) {
-	if strings.Contains(line, "b64der=") {
-		derStr := b64derOrphan.FindStringSubmatch(line)
-		if len(derStr) <= 1 {
-			logger.Err(fmt.Sprintf("b64der variable is empty, [%s]", line))
-			return true, false
-		}
-		der, err := base64.StdEncoding.DecodeString(derStr[1])
-		if err != nil {
-			fmt.Println("WTF", derStr, "RLY")
-			logger.Err(fmt.Sprintf("Couldn't decode b64: %s, [%s]", err, line))
-			return true, false
-		}
-		// extract the regID
-		regStr := regOrphan.FindStringSubmatch(line)
-		if len(regStr) <= 1 {
-			logger.Err(fmt.Sprintf("regID variable is empty, [%s]", line))
-			return true, false
-		}
-		regID, err := strconv.Atoi(regStr[1])
-		if err != nil {
-			logger.Err(fmt.Sprintf("Couldn't parse regID: %s, [%s]", err, line))
-			return true, false
-		}
-		_, err = sa.AddCertificate(der, int64(regID))
-		if err != nil {
-			logger.Err(fmt.Sprintf("Failed to store certificate: %s, [%s]", err, line))
-			return true, false
-		}
-		return true, true
+	if !strings.Contains(line, "b64der=") {
+		return false, false
 	}
-	return false, false
+	derStr := b64derOrphan.FindStringSubmatch(line)
+	if len(derStr) <= 1 {
+		logger.Err(fmt.Sprintf("b64der variable is empty, [%s]", line))
+		return true, false
+	}
+	der, err := base64.StdEncoding.DecodeString(derStr[1])
+	if err != nil {
+		fmt.Println("WTF", derStr, "RLY")
+		logger.Err(fmt.Sprintf("Couldn't decode b64: %s, [%s]", err, line))
+		return true, false
+	}
+	// extract the regID
+	regStr := regOrphan.FindStringSubmatch(line)
+	if len(regStr) <= 1 {
+		logger.Err(fmt.Sprintf("regID variable is empty, [%s]", line))
+		return true, false
+	}
+	regID, err := strconv.Atoi(regStr[1])
+	if err != nil {
+		logger.Err(fmt.Sprintf("Couldn't parse regID: %s, [%s]", err, line))
+		return true, false
+	}
+	_, err = sa.AddCertificate(der, int64(regID))
+	if err != nil {
+		logger.Err(fmt.Sprintf("Failed to store certificate: %s, [%s]", err, line))
+		return true, false
+	}
+	return true, true
 }
 
 func setup(c *cli.Context) (statsd.Statter, *blog.AuditLogger, *rpc.StorageAuthorityClient) {
