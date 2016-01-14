@@ -314,5 +314,16 @@
     "ecdsanistp256": true,
     "ecdsanistp384": true,
     "ecdsanistp521": false
+  },
+
+  "orphanFinder": {
+    "amqp": {
+      "serverURLFile": "test/secrets/amqp_url",
+      "insecure": true,
+      "SA": {
+        "server": "SA.server",
+        "rpcTimeout": "15s"
+      }
+    }
   }
 }
