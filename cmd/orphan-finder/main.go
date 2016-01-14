@@ -14,34 +14,36 @@ import (
 	"github.com/letsencrypt/boulder/Godeps/_workspace/src/github.com/codegangsta/cli"
 
 	"github.com/letsencrypt/boulder/cmd"
+	"github.com/letsencrypt/boulder/core"
 	blog "github.com/letsencrypt/boulder/log"
 	"github.com/letsencrypt/boulder/rpc"
 )
 
 var (
-	b64derOrphan = regexp.MustCompile(`b64der=\[(.+)\]`)
-	regOrphan    = regexp.MustCompile(`regID=\[\d+\]`)
+	b64derOrphan = regexp.MustCompile(`b64der=\[([a-zA-Z0-9+/]+)\]`)
+	regOrphan    = regexp.MustCompile(`regID=\[(\d+)\]`)
 )
 
-func parseLogLine(sa *rpc.StorageAuthorityClient, logger *blog.AuditLogger, line string) (found bool, added bool) {
+func parseLogLine(sa core.StorageAuthority, logger *blog.AuditLogger, line string) (found bool, added bool) {
 	if strings.Contains(line, "b64der=") {
-		derStr := b64derOrphan.FindString(line)
-		if derStr == "" {
+		derStr := b64derOrphan.FindStringSubmatch(line)
+		if len(derStr) <= 1 {
 			logger.Err(fmt.Sprintf("b64der variable is empty, [%s]", line))
 			return true, false
 		}
-		der, err := base64.StdEncoding.DecodeString(derStr)
+		der, err := base64.StdEncoding.DecodeString(derStr[1])
 		if err != nil {
+			fmt.Println("WTF", derStr, "RLY")
 			logger.Err(fmt.Sprintf("Couldn't decode b64: %s, [%s]", err, line))
 			return true, false
 		}
 		// extract the regID
-		regStr := regOrphan.FindString(line)
-		if regStr == "" {
+		regStr := regOrphan.FindStringSubmatch(line)
+		if len(regStr) <= 1 {
 			logger.Err(fmt.Sprintf("regID variable is empty, [%s]", line))
 			return true, false
 		}
-		regID, err := strconv.Atoi(regStr)
+		regID, err := strconv.Atoi(regStr[1])
 		if err != nil {
 			logger.Err(fmt.Sprintf("Couldn't parse regID: %s, [%s]", err, line))
 			return true, false
