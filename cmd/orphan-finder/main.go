@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -24,6 +25,18 @@ var (
 	regOrphan    = regexp.MustCompile(`regID=\[(\d+)\]`)
 )
 
+func checkDER(sa core.StorageAuthority, der []byte) error {
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		return fmt.Errorf("Failed to parse DER: %s", err)
+	}
+	_, err = sa.GetCertificate(core.SerialToString(cert.SerialNumber))
+	if err != nil && !strings.HasPrefix(err.Error(), "Certificate does not exist for ") {
+		return fmt.Errorf("Existing certificate lookup failed: %s", err)
+	}
+	return nil
+}
+
 func parseLogLine(sa core.StorageAuthority, logger *blog.AuditLogger, line string) (found bool, added bool) {
 	if !strings.Contains(line, "b64der=") {
 		return false, false
@@ -35,8 +48,12 @@ func parseLogLine(sa core.StorageAuthority, logger *blog.AuditLogger, line strin
 	}
 	der, err := base64.StdEncoding.DecodeString(derStr[1])
 	if err != nil {
-		fmt.Println("WTF", derStr, "RLY")
 		logger.Err(fmt.Sprintf("Couldn't decode b64: %s, [%s]", err, line))
+		return true, false
+	}
+	err = checkDER(sa, der)
+	if err != nil {
+		logger.Err(fmt.Sprintf("%s, [%s]", err.Error(), line))
 		return true, false
 	}
 	// extract the regID
@@ -150,10 +167,10 @@ func main() {
 					fmt.Println("--regID must be non-zero")
 					os.Exit(1)
 				}
-
 				der, err := ioutil.ReadFile(derPath)
-				cmd.FailOnError(err, "Failed to read der file")
-
+				cmd.FailOnError(err, "Failed to read DER file")
+				err = checkDER(sa, der)
+				cmd.FailOnError(err, "Pre-AddCertificate checks failed")
 				_, err = sa.AddCertificate(der, int64(regID))
 				cmd.FailOnError(err, "Failed to add certificate to database")
 			},
