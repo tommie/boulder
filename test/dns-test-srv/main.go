@@ -6,12 +6,15 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -83,7 +86,16 @@ func (ts *testSrv) dnsHandler(w dns.ResponseWriter, r *dns.Msg) {
 				Class:  dns.ClassINET,
 				Ttl:    0,
 			}
-			record.A = net.ParseIP(fakeDNS)
+			if fakeDNS == "hosts" {
+				ips, err := lookupStaticIP(strings.TrimRight(q.Name, "."))
+				if err != nil {
+					m.SetRcode(r, dns.RcodeServerFailure)
+					continue
+				}
+				record.A = ips[0]
+			} else {
+				record.A = net.ParseIP(fakeDNS)
+			}
 
 			m.Answer = append(m.Answer, record)
 		case dns.TypeMX:
@@ -175,6 +187,87 @@ func (ts *testSrv) serveTestResolver() {
 			return
 		}
 	}()
+}
+
+// lookupStaticIP looks up the name in /etc/hosts. It is like
+// net.lookupStaticIP but does not cache entries blindly. This works
+// better with Docker, which keeps updating the hosts file when
+// containers are added to networks.
+func lookupStaticIP(name string) ([]net.IP, error) {
+	hm, err := allHosts()
+	if os.IsNotExist(err) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return hm[name], nil
+}
+
+// allHosts returns all hosts in /etc/hosts. It loads the file if its
+// mtime has changed since it was last loaded.
+func allHosts() (map[string][]net.IP, error) {
+	path := "/etc/hosts"
+	st, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if hosts == nil || hostsTime.Before(st.ModTime()) {
+		hm, err := loadHosts(path)
+		if err != nil {
+			return nil, err
+		}
+		hosts = hm
+		hostsTime = st.ModTime()
+	}
+
+	return hosts, nil
+}
+
+var (
+	hosts        map[string][]net.IP
+	hostsTime    time.Time
+	hostsFieldRE = regexp.MustCompile("\\s+")
+)
+
+// loadHosts loads hosts from the given path.
+func loadHosts(path string) (map[string][]net.IP, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return readHosts(f)
+}
+
+// readHosts reads and parses a hosts file.
+func readHosts(r io.Reader) (map[string][]net.IP, error) {
+	br := bufio.NewReader(r)
+	ret := map[string][]net.IP{}
+	for {
+		l, err := br.ReadString('\n')
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+		l = strings.TrimSpace(l)
+		if l == "" || l[0] == '#' {
+			continue
+		}
+
+		fs := hostsFieldRE.Split(l, -1)
+		addr := net.ParseIP(fs[0])
+		if addr == nil {
+			continue
+		}
+		for _, name := range fs[1:] {
+			ret[name] = append(ret[name], addr)
+		}
+	}
+	return ret, nil
 }
 
 func main() {
