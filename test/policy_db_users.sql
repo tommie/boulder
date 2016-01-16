@@ -14,13 +14,15 @@
 -- drop command will fail. So we grant the dummy `USAGE` privilege to make sure
 -- the user exists and then drop the user.
 
+SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION';
+
 -- Policy loader, CA, RA
 -- Note: The same config section, "pa" is used by the policy loader (for writes)
 -- and the CA and RA (for reads). So right now we have the one user that has
 -- both read and write permission, even though it would be better to give only
 -- read permission to CA and RA.
-GRANT SELECT,INSERT,DELETE ON blacklist TO 'policy'@'localhost';
-GRANT SELECT,INSERT,DELETE ON whitelist TO 'policy'@'localhost';
+GRANT SELECT,INSERT,DELETE ON blacklist TO 'policy'@'%';
+GRANT SELECT,INSERT,DELETE ON whitelist TO 'policy'@'%';
 
 -- Test setup and teardown
-GRANT ALL PRIVILEGES ON * to 'test_setup'@'localhost';
+GRANT ALL PRIVILEGES ON * to 'test_setup'@'%';

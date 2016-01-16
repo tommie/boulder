@@ -11,7 +11,7 @@
   },
 
   "wfe": {
-    "listenAddress": "127.0.0.1:4000",
+    "listenAddress": "0.0.0.0:4000",
     "allowOrigins": ["*"],
     "certCacheDuration": "6h",
     "certNoCacheExpirationWindow": "96h",
@@ -57,9 +57,9 @@
             "backdate": "1h",
             "is_ca": false,
             "issuer_urls": [
-              "http://127.0.0.1:4000/acme/issuer-cert"
+              "http://boulder:4000/acme/issuer-cert"
             ],
-            "ocsp_url": "http://127.0.0.1:4002/",
+            "ocsp_url": "http://boulder:4002/",
             "crl_url": "http://example.com/crl",
             "policies": [
               {
@@ -111,7 +111,7 @@
   },
 
   "pa": {
-    "dbConnect": "mysql+tcp://policy@localhost:3306/boulder_policy_integration",
+    "dbConnect": "mysql+tcp://policy@boulder-mysql:3306/boulder_policy_integration",
     "challenges": {
       "http-01": true,
       "tls-sni-01": true,
@@ -161,9 +161,9 @@
     "issuerDomain": "happy-hacker-ca.invalid",
     "debugAddr": "localhost:8004",
     "portConfig": {
-      "httpPort": 5002,
-      "httpsPort": 5001,
-      "tlsPort": 5001
+      "httpPort": 80,
+      "httpsPort": 443,
+      "tlsPort": 443
     },
     "maxConcurrentRPCServerRequests": 16,
     "dnsTries": 3,
@@ -199,7 +199,7 @@
   },
 
   "ocspResponder": {
-    "source": "mysql+tcp://ocsp_resp@localhost:3306/boulder_sa_integration",
+    "source": "mysql+tcp://ocsp_resp@boulder-mysql:3306/boulder_sa_integration",
     "path": "/",
     "listenAddress": "localhost:4002",
     "maxAge": "10s",
@@ -287,7 +287,7 @@
   },
 
   "common": {
-    "baseURL": "http://127.0.0.1:4000",
+    "baseURL": "http://boulder:4000",
     "issuerCert": "test/test-ca.pem",
     "dnsResolver": "127.0.0.1:8053",
     "dnsTimeout": "10s",
@@ -307,7 +307,7 @@
     "dbConnectFile": "test/secrets/cert_checker_dburl"
   },
 
-  "subscriberAgreementURL": "http://127.0.0.1:4001/terms/v1",
+  "subscriberAgreementURL": "http://boulder:4001/terms/v1",
 
   "allowedSigningAlgos": {
     "rsa": true,

@@ -3,20 +3,21 @@
 -- Note that dropping a non-existing user produces an error that aborts the
 -- script, so we first grant a harmless privilege to each user to ensure it
 -- exists.
-GRANT USAGE ON *.* TO 'policy'@'localhost';
-DROP USER 'policy'@'localhost';
-GRANT USAGE ON *.* TO 'sa'@'localhost';
-DROP USER 'sa'@'localhost';
-GRANT USAGE ON *.* TO 'ocsp_resp'@'localhost';
-DROP USER 'ocsp_resp'@'localhost';
-GRANT USAGE ON *.* TO 'ocsp_update'@'localhost';
-DROP USER 'ocsp_update'@'localhost';
-GRANT USAGE ON *.* TO 'revoker'@'localhost';
-DROP USER 'revoker'@'localhost';
-GRANT USAGE ON *.* TO 'importer'@'localhost';
-DROP USER 'importer'@'localhost';
-GRANT USAGE ON *.* TO 'mailer'@'localhost';
-DROP USER 'mailer'@'localhost';
-GRANT USAGE ON *.* TO 'cert_checker'@'localhost';
-DROP USER 'cert_checker'@'localhost';
+SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION';
+GRANT USAGE ON *.* TO 'policy'@'%';
+DROP USER 'policy'@'%';
+GRANT USAGE ON *.* TO 'sa'@'%';
+DROP USER 'sa'@'%';
+GRANT USAGE ON *.* TO 'ocsp_resp'@'%';
+DROP USER 'ocsp_resp'@'%';
+GRANT USAGE ON *.* TO 'ocsp_update'@'%';
+DROP USER 'ocsp_update'@'%';
+GRANT USAGE ON *.* TO 'revoker'@'%';
+DROP USER 'revoker'@'%';
+GRANT USAGE ON *.* TO 'importer'@'%';
+DROP USER 'importer'@'%';
+GRANT USAGE ON *.* TO 'mailer'@'%';
+DROP USER 'mailer'@'%';
+GRANT USAGE ON *.* TO 'cert_checker'@'%';
+DROP USER 'cert_checker'@'%';
 

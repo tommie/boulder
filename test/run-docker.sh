@@ -36,20 +36,21 @@ if [[ ! -z "$DOCKER_HOST" ]]; then
 	hostip="$(echo $DOCKER_HOST | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')"
 fi
 
-# In order to talk to a letsencrypt client running on the host, the fake DNS
-# client used in Boulder's start.py needs to know what the host's IP is from the
-# perspective of the container. We try to figure it out automatically. If you'd
-# like your Boulder instance to always talk to some other host, you can set
-# FAKE_DNS to that host's IP address.
+# If FAKE_DNS is empty, we default to looking up hosts in /etc/hosts.
+# If FAKE_DNS is an IP-address, all hostnames are resolved to this IP address.
 if [ -z "${FAKE_DNS}" ] ; then
-  FAKE_DNS=$(/sbin/ifconfig docker0 | sed -n 's/ *inet addr:\([0-9.]\+\).*/\1/p')
+	FAKE_DNS=hosts
+fi
+
+if ! docker network ls | grep boulder >/dev/null; then
+	docker network create boulder
 fi
 
 if [[ "$(is_running boulder-mysql)" != "true" ]]; then
 	# bring up mysql mariadb container
 	docker run -d \
-		--net host \
-		-p 3306:3306 \
+		--net boulder \
+		-p 127.0.0.1:$BOULDER_MYSQL_PORT:3306 \
 		-e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
 		--name boulder-mysql \
 		mariadb:10
@@ -58,8 +59,8 @@ fi
 if [[ "$(is_running boulder-rabbitmq)" != "true" ]]; then
 	# bring up rabbitmq container
 	docker run -d \
-		--net host \
-		-p 5672:5672 \
+		--net boulder \
+		-p 127.0.0.1:$BOULDER_RABBITMQ_PORT:5672 \
 		--name boulder-rabbitmq \
 		rabbitmq:3
 fi
@@ -71,8 +72,9 @@ docker build --rm --force-rm -t letsencrypt/boulder .
 # The excluding `-d` command makes the instance interactive, so you can kill
 # the boulder container with Ctrl-C.
 docker run --rm -it \
-	--net host \
-	-p 4000:4000 \
+	--net boulder \
+	-p 127.0.0.1:$BOULDER_PORT:4000 \
 	-e MYSQL_CONTAINER=yes \
+	-e FAKE_DNS="$FAKE_DNS" \
 	--name boulder \
 	letsencrypt/boulder
