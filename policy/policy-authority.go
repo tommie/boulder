@@ -25,11 +25,12 @@ type PolicyAuthorityImpl struct {
 
 	EnforceWhitelist  bool
 	enabledChallenges map[string]bool
+	allowAnySuffix    bool
 	pseudoRNG         *rand.Rand
 }
 
 // NewPolicyAuthorityImpl constructs a Policy Authority.
-func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, enforceWhitelist bool, challengeTypes map[string]bool) (*PolicyAuthorityImpl, error) {
+func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, enforceWhitelist, allowAnySuffix bool, challengeTypes map[string]bool) (*PolicyAuthorityImpl, error) {
 	logger := blog.GetAuditLogger()
 	logger.Notice("Policy Authority Starting")
 
@@ -44,6 +45,7 @@ func NewPolicyAuthorityImpl(dbMap *gorp.DbMap, enforceWhitelist bool, challengeT
 		DB:                padb,
 		EnforceWhitelist:  enforceWhitelist,
 		enabledChallenges: challengeTypes,
+		allowAnySuffix:    allowAnySuffix,
 		// We don't need real randomness for this.
 		pseudoRNG: rand.New(rand.NewSource(99)),
 	}
@@ -178,13 +180,15 @@ func (pa PolicyAuthorityImpl) WillingToIssue(id core.AcmeIdentifier, regID int64
 		}
 	}
 
-	// Names must end in an ICANN TLD, but they must not be equal to an ICANN TLD.
-	icannTLD, err := publicsuffix.ICANNTLD(domain)
-	if err != nil {
-		return errNonPublic
-	}
-	if icannTLD == domain {
-		return errICANNTLD
+	if !pa.allowAnySuffix {
+		// Names must end in an ICANN TLD, but they must not be equal to an ICANN TLD.
+		icannTLD, err := publicsuffix.ICANNTLD(domain)
+		if err != nil {
+			return errNonPublic
+		}
+		if icannTLD == domain {
+			return errICANNTLD
+		}
 	}
 
 	// Use the domain whitelist if the PA has been asked to. However, if the

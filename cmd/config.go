@@ -314,6 +314,10 @@ type PAConfig struct {
 	DBConfig
 	EnforcePolicyWhitelist bool
 	Challenges             map[string]bool
+	// AllowAnySuffix indicates whether any domain suffix is
+	// acceptable, or if only ICANN TLD public suffixes are
+	// allowed.
+	AllowAnySuffix         bool
 }
 
 // CheckChallenges checks whether the list of challenges in the PA config

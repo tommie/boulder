@@ -212,7 +212,7 @@ func initAuthorities(t *testing.T) (*DummyValidationAuthority, *sa.SQLStorageAut
 		t.Fatalf("Failed to create dbMap: %s", err)
 	}
 	policyDBCleanUp := test.ResetPolicyTestDatabase(t)
-	pa, err := policy.NewPolicyAuthorityImpl(paDbMap, false, SupportedChallenges)
+	pa, err := policy.NewPolicyAuthorityImpl(paDbMap, false, false, SupportedChallenges)
 	test.AssertNotError(t, err, "Couldn't create PA")
 
 	stats, _ := statsd.NewNoopClient()

@@ -154,7 +154,7 @@ func setup(t *testing.T) *testCtx {
 
 	paDbMap, err := sa.NewDbMap(vars.DBConnPolicy)
 	test.AssertNotError(t, err, "Could not construct dbMap")
-	pa, err := policy.NewPolicyAuthorityImpl(paDbMap, false, nil)
+	pa, err := policy.NewPolicyAuthorityImpl(paDbMap, false, false, nil)
 	test.AssertNotError(t, err, "Couldn't create PADB")
 	paDBCleanUp := test.ResetPolicyTestDatabase(t)
 
